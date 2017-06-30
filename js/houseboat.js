@@ -7,36 +7,62 @@ HouseBoat.prototype.initialize = function() {
     var svg = d3.select("svg"),
         width = +svg.attr("width"),
         height = +svg.attr("height");
+    this.message = $("#message");
+    // Capture arrow keypress events.
+    this.right = false;
+    this.left = false;
+    this.up = false;
+    this.down = false;
+    var self = this;
+    d3.select("body")
+        // up=38, dn=40
+        .on("keydown", function() {
+            var code = d3.event.keyCode;
+            if(code == 39) {
+                self.right = true;
+            }
+            else if(code == 37) {
+                self.left = true;
+            }
+            else if(code == 38) {
+                self.up = true;
+            }
+            else if(code == 40) {
+                self.down = true;
+            }
+        })
+        .on("keyup", function() {
+            var code = d3.event.keyCode;
+            if(code == 39) {
+                self.right = false;
+            }
+            else if(code == 37) {
+                self.left = false;
+            }
+            else if(code == 38) {
+                self.up = false;
+            }
+            else if(code == 40) {
+                self.down = false;
+            }
+        });
+}
 
-    /**
-    this.width = 30;
-    this.length = 50;
-    this.x = 0.5 * width;
-    this.y = 0.5 * height;
-    this.theta = 0.0;
-
-    svg.selectAll("rect")
-            .data([this])
-        .enter().append("rect")
-            .attr("x", 0.5 * (width - this.width))
-            .attr("y", 0.5 * (height - this.length))
-            .attr("width", this.width)
-            .attr("height", this.length)
-            .style("fill", "black")
-            .style("opacity", 0.5);
-    **/
+HouseBoat.prototype.run = function() {
+    // Start the interval timer.
+    var self = this;
+    this.interval_id = setInterval(function() {
+        var turn_adjust = +1. * self.right - 1 * self.left;
+        var throttle_adjust = +1. * self.up - 1. * self.down;
+        self.message.text("turn " + turn_adjust + " throttle " + throttle_adjust);
+    }, 200 /* ms */);
 }
 
 $(function() {
     // DOM is ready.
-    $( "p" ).text( "Initializing" );
-/*
-  });
-
-// Need scripts to load before going further.
-$(window).on("load", function(){
-*/
+    $("#message").text("Initializing");
     var hb = new HouseBoat();
     hb.initialize();
-    $( "p" ).text( "Running" );
+    $("#message").text("Running");
+    hb.run();
 });
