@@ -2,8 +2,9 @@ coord = function(x, y) {
     return "" + x + "," + y;
 }
 
-function Boundary(axes, fill, vertices) {
+function Boundary(axes, fill, spring_constant, vertices) {
     this.vertices = vertices;
+    this.spring_constant = spring_constant;
     var points_str = "";
     for(var i = 0; i < this.vertices.length; i++) {
         points_str += coord(this.vertices[i][0], this.vertices[i][1])
@@ -15,6 +16,34 @@ function Boundary(axes, fill, vertices) {
         .attr("stroke", "brown")
         .attr("stroke-width", "3.0")
         .attr("fill", fill);
+}
+
+Boundary.prototype.restoring_force = function(point) {
+    // Find which edge was breached.
+    var x0 = point[0], y0 = point[1], x1, x2, y1, y2, s;
+    for(var i1 = 0; i1 < this.vertices.length; i1++) {
+        i2 = (i1 + 1) % this.vertices.length;
+        x1 = this.vertices[i1][0];
+        x2 = this.vertices[i2][0];
+        y1 = this.vertices[i1][1];
+        y2 = this.vertices[i2][1];
+        s = ((x0 - x1) * (x2 - x1) + (y0 - y1) * (y2 - y1)) /
+            ((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+        if((s < 0) || (s >= 1)) continue;
+        fx = this.spring_constant * ((1 - s) * x1 + s * x2 - x0);
+        fy = this.spring_constant * ((1 - s) * y1 + s * y2 - y0);
+        // Limit the maximum restoring force.
+        var fnorm2 = fx * fx + fy * fy;
+        var fnorm2max = 10000.0;
+        if(fnorm2 > fnorm2max) {
+            var scale = Math.sqrt(fnorm2max / fnorm2);
+            fx *= scale;
+            fy *= scale;
+        }
+        return [fx, fy];
+    }
+    console.log('No breach found');
+    return [0., 0.];
 }
 
 function HouseBoat() { }
@@ -34,7 +63,7 @@ HouseBoat.prototype.initialize = function(axes) {
     this.throttle = 0.0;
     this.steering = 0.0;
     this.phi = 0.0;
-    this.damage = [0.1, 0.1, 0.1, 0.1];
+    this.damage = [0.0, 0.0, 0.0, 0.0];
     // Initialize an array of corner locations.
     this.corners = [[0.,0.], [0.,0.], [0.,0.], [0.,0.]];
     this.update_corners();
@@ -76,7 +105,8 @@ HouseBoat.prototype.initialize = function(axes) {
     this.leverarm = 1.0;
 }
 
-HouseBoat.prototype.update = function(throttle, steering) {
+HouseBoat.prototype.update = function(
+    throttle, steering, external_force) {
     dt = 0.1;
     this.throttle = throttle;
     this.steering = steering;
@@ -101,8 +131,8 @@ HouseBoat.prototype.update = function(throttle, steering) {
     var thrust_x = thrust_mag * Math.cos(angle);
     var thrust_y = thrust_mag * Math.sin(angle);
     // Calculate the net force on the COM
-    var Fx = thrust_x + drag_x + this.current_x;
-    var Fy = thrust_y + drag_y + this.current_y;
+    var Fx = thrust_x + drag_x + this.current_x + external_force[0];
+    var Fy = thrust_y + drag_y + this.current_y + external_force[1];
     // Update the position and bearing using the present motion.
     this.x += this.vx * dt;
     this.y += this.vy * dt;
@@ -253,7 +283,7 @@ Simulator.prototype.initialize = function() {
             }
         });
 
-    limits = new Boundary(this.axes, "lightblue",
+    limits = new Boundary(this.axes, "lightblue", 1000.0,
         [[-wby2, -hby2], [-wby2, hby2], [wby2, hby2], [wby2, -hby2]]);
     this.boundaries = [ limits ];
 
@@ -286,16 +316,25 @@ Simulator.prototype.run = function() {
             0.5 * (self.window_width + self.steering_max * steering));
         // Test for any boat-boundary collisions.
         var corners = self.houseboat.corners;
+        var external_torque = 0.0, external_force = [0., 0.];
         for(var i = 0; i < self.boundaries.length; i++) {
             var boundary = self.boundaries[i];
             // Loop over corners of the boat.
             for(var j = 0; j < corners.length; j++) {
                 if(!d3.polygonContains(boundary.vertices, corners[j])) {
-                    self.houseboat.damage[j] += 0.02;
+                    force = boundary.restoring_force(corners[j]);
+                    external_force[0] += force[0];
+                    external_force[1] += force[1];
+                    damage = 0.0002 * Math.sqrt(
+                        force[0] * force[0] + force[1] * force[1]);
+                    self.houseboat.damage[j] += damage;
+                    if(self.houseboat.damage[j] > 1.0) {
+                        self.houseboat.damage[j] = 1.0;
+                    }
                 }
             }
         }
-        self.houseboat.update(throttle, steering);
+        self.houseboat.update(throttle, steering, external_force);
         self.houseboat.draw();
     }, ival);
 }
