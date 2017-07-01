@@ -20,6 +20,10 @@ function Boundary(axes, fill, vertices) {
 function HouseBoat() { }
 
 HouseBoat.prototype.initialize = function(axes) {
+    // Initialize boat geometry.
+    this.deg2rad = Math.PI / 180;
+    this.length = 100;
+    this.width = 60;
     // Initialize boat state.
     this.x = 0.0;
     this.y = 0.0;
@@ -30,11 +34,15 @@ HouseBoat.prototype.initialize = function(axes) {
     this.throttle = 0.0;
     this.steering = 0.0;
     this.phi = 0.0;
+    this.damage = [0.1, 0.1, 0.1, 0.1];
+    // Initialize an array of corner locations.
+    this.corners = [[0.,0.], [0.,0.], [0.,0.], [0.,0.]];
+    this.update_corners();
     // Create boat's visual representation.
     this.boat = axes.append("g");
     this.boat.append("rect")
-        .attr("width", "100")
-        .attr("height", "60")
+        .attr("width", "" + this.length)
+        .attr("height", "" + this.width)
         .attr("transform", "translate(-50, -30)")
         .attr("fill", "gray")
         .attr("stroke", "black");
@@ -45,9 +53,20 @@ HouseBoat.prototype.initialize = function(axes) {
         .attr("transform", "rotate(0) scale(-0.5)")
         .attr("stroke", "red")
         .attr("fill", "none");
+    this.corner_circles = [];
+    var L = 0.5 * this.length, W = 0.5 * this.width;
+    var xy = [[-L, -W], [-L, +W], [+L, +W], [+L, -W]];
+    for(var i = 0; i < 4; i++) {
+        var circle = this.boat.append("circle")
+            .attr("stroke", "none")
+            .attr("fill", "red")
+            .attr("cx", xy[i][0])
+            .attr("cy", xy[i][1])
+            .attr("r", 8);
+        this.corner_circles.push(circle);
+    }
     this.draw();
     // Initialize model constants.
-    this.deg2rad = Math.PI / 180;
     this.max_thrust = 10.0;
     this.drag_p = 0.1;
     this.drag_t = 2.0;
@@ -99,6 +118,22 @@ HouseBoat.prototype.update = function(throttle, steering) {
     var tnet = tprop + tdrag;
     // Update the angular velocity about the COM (assuming I=1).
     this.omega += tnet * dt;
+    // Update corner coordinates.
+    this.update_corners();
+}
+
+HouseBoat.prototype.update_corners = function() {
+    var theta = this.theta * this.deg2rad;
+    var nx = Math.cos(theta), ny = Math.sin(theta);
+    var L = 0.5 * this.length, W = 0.5 * this.width;
+    this.corners[0][0] = this.x - nx * L - ny * W;
+    this.corners[0][1] = this.y + ny * L - nx * W;
+    this.corners[1][0] = this.x - nx * L + ny * W;
+    this.corners[1][1] = this.y + ny * L + nx * W;
+    this.corners[2][0] = this.x + nx * L + ny * W;
+    this.corners[2][1] = this.y - ny * L + nx * W;
+    this.corners[3][0] = this.x + nx * L - ny * W;
+    this.corners[3][1] = this.y - ny * L - nx * W;
 }
 
 HouseBoat.prototype.draw = function() {
@@ -106,8 +141,8 @@ HouseBoat.prototype.draw = function() {
         .attr("transform",
             "translate(" + coord(this.x,this.y) + ") rotate(" +
             this.theta + ",0,0)");
-    if(Math.abs(this.throttle) < 0.05) {
-        wake_scale = 0.05;
+    if(Math.abs(this.throttle) < 0.1) {
+        wake_scale = 0.1;
     }
     else {
         wake_scale = this.throttle;
@@ -115,6 +150,9 @@ HouseBoat.prototype.draw = function() {
     this.wake
         .attr("transform", "rotate(" + this.phi + ") scale(" +
             wake_scale + ")");
+    for(var i = 0; i < 4; i++) {
+        this.corner_circles[i].attr("fill-opacity", "" + this.damage[i]);
+    }
 }
 
 function Simulator() {
@@ -215,9 +253,9 @@ Simulator.prototype.initialize = function() {
             }
         });
 
-    this.boundaries = new Array();
     limits = new Boundary(this.axes, "lightblue",
         [[-wby2, -hby2], [-wby2, hby2], [wby2, hby2], [wby2, -hby2]]);
+    this.boundaries = [ limits ];
 
     this.houseboat = new HouseBoat();
     this.houseboat.initialize(this.axes);
@@ -240,12 +278,21 @@ Simulator.prototype.run = function() {
         steering += 0.01 * steering_adjust;
         if(steering > 1.0) { steering = 1.0; }
         else if(steering < -1.0) { steering = -1.0; }
-        self.throttle_display //.transition(self.trans)
+        self.throttle_display
             .attr("cy",
             0.5 * (self.window_height - self.throttle_max * throttle));
-        self.steering_display //.transition(self.trans)
+        self.steering_display
             .attr("cx",
             0.5 * (self.window_width + self.steering_max * steering));
+        // Test for any boat-boundary collisions.
+        var corners = self.houseboat.corners;
+        for(var i = 0; i < self.boundaries.length; i++) {
+            var boundary = self.boundaries[i];
+            // Loop over corners of the boat.
+            for(var j = 0; j < corners.length; j++) {
+                // ...
+            }
+        }
         self.houseboat.update(throttle, steering);
         self.houseboat.draw();
     }, ival);
