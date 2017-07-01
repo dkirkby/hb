@@ -2,20 +2,19 @@ coord = function(x, y) {
     return "" + x + "," + y;
 }
 
-function Boundary(coords) {
-    this.coords = coords;
-}
-
-Boundary.prototype.draw = function(container) {
+function Boundary(axes, fill, vertices) {
+    this.vertices = vertices;
     var points_str = "";
-    for(var i = 0; i < this.coords.length; i+=2) {
-        if(i > 0) points_str += " ";
-        points_str += coords(this.coords[i], this.coords[i + 1]);
+    for(var i = 0; i < this.vertices.length; i++) {
+        points_str += coord(this.vertices[i][0], this.vertices[i][1])
+            + " ";
     }
-    container.append("polyline")
+    points_str += coord(this.vertices[0][0], this.vertices[0][1]);
+    axes.append("polyline")
         .attr("points", points_str)
-        .attr("stroke", "red")
-        .attr("fill", "none");
+        .attr("stroke", "brown")
+        .attr("stroke-width", "3.0")
+        .attr("fill", fill);
 }
 
 function HouseBoat() { }
@@ -215,6 +214,10 @@ Simulator.prototype.initialize = function() {
                 self.throttle_display.attr("fill-opacity", "0.5");
             }
         });
+
+    this.boundaries = new Array();
+    limits = new Boundary(this.axes, "lightblue",
+        [[-wby2, -hby2], [-wby2, hby2], [wby2, hby2], [wby2, -hby2]]);
 
     this.houseboat = new HouseBoat();
     this.houseboat.initialize(this.axes);
