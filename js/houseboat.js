@@ -2,12 +2,48 @@ function HouseBoat() {
     console.log("Created new HouseBoat");
 }
 
+HouseBoat.prototype.draw_boat = function() {
+    this.boat
+        .attr("transform",
+            "translate(" + this.x + "," + this.y + ") rotate(" + (-this.theta) + ",0,0)");
+    if(Math.abs(this.throttle) < 0.05) {
+        wake_scale = 0.05;
+    }
+    else {
+        wake_scale = this.throttle;
+    }
+    this.wake
+        .attr("transform", "rotate(" + (-this.phi) + ") scale(" +
+            wake_scale + ")");
+}
+
 HouseBoat.prototype.initialize = function() {
-    console.log("HouseBoat.initialize()");
     this.svg = d3.select("svg");
     this.window_width = +this.svg.attr("width");
     this.window_height = +this.svg.attr("height");
-    this.message = $("#message");
+    // Initialize boat state.
+    this.x = 0.5 * this.window_width;
+    this.y = 0.5 * this.window_height;
+    this.theta = 0.0;
+    this.phi = 0.0;
+    this.vx = 0.0;
+    this.vy = 0.0;
+    // Create boat's visual representation.
+    this.boat = this.svg.append("g");
+    this.boat.append("rect")
+        .attr("width", "100")
+        .attr("height", "60")
+        .attr("transform", "translate(-50, -30)")
+        .attr("fill", "gray")
+        .attr("stroke", "black");
+    var wake_group = this.boat.append("g")
+        .attr("transform", "translate(-50, 0)");
+    this.wake = wake_group.append("polyline")
+        .attr("points", "-50,-15 0,0 -50,15")
+        .attr("transform", "rotate(0) scale(-0.5)")
+        .attr("stroke", "red")
+        .attr("fill", "none");
+    this.draw_boat();
     // Capture arrow keypress events.
     this.right = false;
     this.left = false;
@@ -99,19 +135,19 @@ HouseBoat.prototype.run = function() {
         else if(self.steering < -1.0) {
             self.steering = -1.0;
         }
-        //console.log('tick', elapsed, self.throttle, self.steering);
         self.throttle_display //.transition(self.trans)
             .attr("cy", 0.5 * (self.window_height - self.throttle_max * self.throttle));
         self.steering_display //.transition(self.trans)
             .attr("cx", 0.5 * (self.window_width + self.steering_max * self.steering));
+        self.phi = 90.0 * self.steering;
+        self.draw_boat();
     }, ival);
 }
 
+var hb = new HouseBoat();
+
 $(function() {
     // DOM is ready.
-    $("#message").text("Initializing");
-    var hb = new HouseBoat();
     hb.initialize();
-    $("#message").text("Running");
     hb.run();
 });
