@@ -1,3 +1,7 @@
+coord = function(x, y) {
+    return "" + x + "," + y;
+}
+
 function HouseBoat() {
     console.log("Created new HouseBoat");
 }
@@ -6,13 +10,14 @@ HouseBoat.prototype.initialize = function() {
     this.svg = d3.select("svg");
     this.window_width = +this.svg.attr("width");
     this.window_height = +this.svg.attr("height");
+    var wby2 = 0.5 * this.window_width, hby2 = 0.5 * this.window_height;
     // Set coordinate system with origin at center of the window,
     // x increasing to the right, and y increasing upwards.
     this.axes = this.svg.append("g")
         .attr("transform", "translate(512, 320) scale(1, -1)");
     // Initialize boat state.
-    this.x = 0.0; //0.5 * this.window_width;
-    this.y = 0.0; //0.5 * this.window_height;
+    this.x = 0.0;
+    this.y = 0.0;
     this.theta = 45.0;
     this.phi = 0.0;
     this.vx = 0.0;
@@ -90,18 +95,34 @@ HouseBoat.prototype.initialize = function() {
         var radius = 16;
         this.throttle_display = this.svg.append("circle")
             .attr("cx", self.window_width - radius)
-            .attr("cy", 0.5 * this.window_height - radius)
+            .attr("cy", hby2 - radius)
             .attr("r", radius)
             .attr("stroke", "black")
             .attr("fill-opacity", "0.5")
             .attr("fill", "green");
         this.steering_display = this.svg.append("circle")
-            .attr("cx", 0.5 * this.window_width - radius)
+            .attr("cx", wby2 - radius)
             .attr("cy", self.window_height - radius)
             .attr("r", radius)
             .attr("stroke", "black")
             .attr("fill-opacity", "0.5")
             .attr("fill", "green");
+        // Draw center marks for each control.
+        var w = 0.2 * radius, h = 0.6 * radius;
+        this.svg.append("polygon")
+            .attr("points",
+                coord(wby2 - w, this.window_height) + " " +
+                coord(wby2, this.window_height - h) + " " +
+                coord(wby2 + w, this.window_height))
+            .attr("stroke", "black")
+            .attr("fill", "blue");
+            this.svg.append("polygon")
+                .attr("points",
+                    coord(this.window_width, hby2 - w) + " " +
+                    coord(this.window_width - h, hby2) + " " +
+                    coord(this.window_width, hby2 + w))
+                .attr("stroke", "black")
+                .attr("fill", "blue");
         this.throttle_max = self.window_height - 2 * radius;
         this.steering_max = self.window_width - 2 * radius;
         // Initialize constants.
@@ -159,7 +180,8 @@ HouseBoat.prototype.update_state = function() {
 HouseBoat.prototype.draw_boat = function() {
     this.boat
         .attr("transform",
-            "translate(" + this.x + "," + this.y + ") rotate(" + this.theta + ",0,0)");
+            "translate(" + coord(this.x,this.y) + ") rotate(" +
+            this.theta + ",0,0)");
     if(Math.abs(this.throttle) < 0.05) {
         wake_scale = 0.05;
     }
