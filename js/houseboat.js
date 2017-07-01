@@ -100,8 +100,6 @@ HouseBoat.prototype.initialize = function(axes) {
     this.drag_p = 0.1;
     this.drag_t = 2.0;
     this.drag_r = 0.2;
-    this.current_x = 0.0;
-    this.current_y = 0.0;
     this.leverarm = 1.0;
 }
 
@@ -131,8 +129,8 @@ HouseBoat.prototype.update = function(
     var thrust_x = thrust_mag * Math.cos(angle);
     var thrust_y = thrust_mag * Math.sin(angle);
     // Calculate the net force on the COM
-    var Fx = thrust_x + drag_x + this.current_x + external_force[0];
-    var Fy = thrust_y + drag_y + this.current_y + external_force[1];
+    var Fx = thrust_x + drag_x + external_force[0];
+    var Fy = thrust_y + drag_y + external_force[1];
     // Update the position and bearing using the present motion.
     this.x += this.vx * dt;
     this.y += this.vy * dt;
@@ -188,7 +186,9 @@ HouseBoat.prototype.draw = function() {
 function Simulator() {
 }
 
-Simulator.prototype.initialize = function() {
+Simulator.prototype.initialize = function(current_x, current_y) {
+    this.current_x = current_x;
+    this.current_y = current_y;
     this.svg = d3.select("svg");
     this.window_width = +this.svg.attr("width");
     this.window_height = +this.svg.attr("height");
@@ -316,7 +316,8 @@ Simulator.prototype.run = function() {
             0.5 * (self.window_width + self.steering_max * steering));
         // Test for any boat-boundary collisions.
         var corners = self.houseboat.corners;
-        var external_torque = 0.0, external_force = [0., 0.];
+        var external_torque = 0.0,
+            external_force = [self.current_x, self.current_y];
         for(var i = 0; i < self.boundaries.length; i++) {
             var boundary = self.boundaries[i];
             // Loop over corners of the boat.
@@ -348,7 +349,7 @@ Simulator.prototype.run = function() {
 var sim = new Simulator();
 
 $(function() {
-    // DOM is ready.
-    sim.initialize();
+    // Simulator parameters are current (x,y).
+    sim.initialize(0.5, 0.0);
     sim.run();
 });
