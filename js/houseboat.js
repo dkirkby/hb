@@ -106,7 +106,7 @@ HouseBoat.prototype.initialize = function(axes) {
 }
 
 HouseBoat.prototype.update = function(
-    throttle, steering, external_force) {
+    throttle, steering, external_force, external_torque) {
     dt = 0.1;
     this.throttle = throttle;
     this.steering = steering;
@@ -145,7 +145,7 @@ HouseBoat.prototype.update = function(
     // Calculate the torque about the COM due to rotational drag.
     var tdrag = -this.omega * this.drag_r;
     // Calculate the net torque about the COM.
-    var tnet = tprop + tdrag;
+    var tnet = tprop + tdrag + external_torque;
     // Update the angular velocity about the COM (assuming I=1).
     this.omega += tnet * dt;
     // Update corner coordinates.
@@ -325,6 +325,11 @@ Simulator.prototype.run = function() {
                     force = boundary.restoring_force(corners[j]);
                     external_force[0] += force[0];
                     external_force[1] += force[1];
+                    // Calculate torque about COM.
+                    var rx = corners[j][0] - self.houseboat.x;
+                    var ry = corners[j][1] - self.houseboat.y;
+                    external_torque += 0.01 * (rx * force[1] - ry * force[0]);
+                    // Calculate damage in proportion to |force|.
                     damage = 0.0002 * Math.sqrt(
                         force[0] * force[0] + force[1] * force[1]);
                     self.houseboat.damage[j] += damage;
@@ -334,7 +339,8 @@ Simulator.prototype.run = function() {
                 }
             }
         }
-        self.houseboat.update(throttle, steering, external_force);
+        self.houseboat.update(
+            throttle, steering, external_force, external_torque);
         self.houseboat.draw();
     }, ival);
 }
