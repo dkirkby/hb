@@ -2,29 +2,37 @@ coord = function(x, y) {
     return "" + x + "," + y;
 }
 
-function HouseBoat() {
-    console.log("Created new HouseBoat");
+function Boundary(coords) {
+    this.coords = coords;
 }
 
-HouseBoat.prototype.initialize = function() {
-    this.svg = d3.select("svg");
-    this.window_width = +this.svg.attr("width");
-    this.window_height = +this.svg.attr("height");
-    var wby2 = 0.5 * this.window_width, hby2 = 0.5 * this.window_height;
-    // Set coordinate system with origin at center of the window,
-    // x increasing to the right, and y increasing upwards.
-    this.axes = this.svg.append("g")
-        .attr("transform", "translate(512, 320) scale(1, -1)");
+Boundary.prototype.draw = function(container) {
+    var points_str = "";
+    for(var i = 0; i < this.coords.length; i+=2) {
+        if(i > 0) points_str += " ";
+        points_str += coords(this.coords[i], this.coords[i + 1]);
+    }
+    container.append("polyline")
+        .attr("points", points_str)
+        .attr("stroke", "red")
+        .attr("fill", "none");
+}
+
+function HouseBoat() { }
+
+HouseBoat.prototype.initialize = function(axes) {
     // Initialize boat state.
     this.x = 0.0;
     this.y = 0.0;
     this.theta = 45.0;
-    this.phi = 0.0;
     this.vx = 0.0;
     this.vy = 0.0;
     this.omega = 0.0;
+    this.throttle = 0.0;
+    this.steering = 0.0;
+    this.phi = 0.0;
     // Create boat's visual representation.
-    this.boat = this.axes.append("g");
+    this.boat = axes.append("g");
     this.boat.append("rect")
         .attr("width", "100")
         .attr("height", "60")
@@ -38,106 +46,23 @@ HouseBoat.prototype.initialize = function() {
         .attr("transform", "rotate(0) scale(-0.5)")
         .attr("stroke", "red")
         .attr("fill", "none");
-    this.draw_boat();
-    // Capture arrow keypress events.
-    this.right = false;
-    this.left = false;
-    this.up = false;
-    this.down = false;
-    var self = this;
-    d3.select("body")
-        // up=38, dn=40
-        .on("keydown", function() {
-            var code = d3.event.keyCode;
-            if(code == 39) {
-                self.right = true;
-            }
-            else if(code == 37) {
-                self.left = true;
-            }
-            else if(code == 38) {
-                self.up = true;
-            }
-            else if(code == 40) {
-                self.down = true;
-            }
-            if(self.right || self.left) {
-                self.steering_display.attr("fill", "red");
-            }
-            if(self.up || self.down) {
-                self.throttle_display.attr("fill", "red");
-            }
-        })
-        .on("keyup", function() {
-            var code = d3.event.keyCode;
-            if(code == 39) {
-                self.right = false;
-            }
-            else if(code == 37) {
-                self.left = false;
-            }
-            else if(code == 38) {
-                self.up = false;
-            }
-            else if(code == 40) {
-                self.down = false;
-            }
-            if(!self.right && !self.left) {
-                self.steering_display.attr("fill", "green");
-            }
-            if(!self.up && !self.down) {
-                self.throttle_display.attr("fill", "green");
-            }
-        });
-        // Initialize throttle and steering controls.
-        this.throttle = 0.0;
-        this.steering = 0.0;
-        var radius = 16;
-        this.throttle_display = this.svg.append("circle")
-            .attr("cx", self.window_width - radius)
-            .attr("cy", hby2 - radius)
-            .attr("r", radius)
-            .attr("stroke", "black")
-            .attr("fill-opacity", "0.5")
-            .attr("fill", "green");
-        this.steering_display = this.svg.append("circle")
-            .attr("cx", wby2 - radius)
-            .attr("cy", self.window_height - radius)
-            .attr("r", radius)
-            .attr("stroke", "black")
-            .attr("fill-opacity", "0.5")
-            .attr("fill", "green");
-        // Draw center marks for each control.
-        var w = 0.2 * radius, h = 0.6 * radius;
-        this.svg.append("polygon")
-            .attr("points",
-                coord(wby2 - w, this.window_height) + " " +
-                coord(wby2, this.window_height - h) + " " +
-                coord(wby2 + w, this.window_height))
-            .attr("stroke", "black")
-            .attr("fill", "blue");
-            this.svg.append("polygon")
-                .attr("points",
-                    coord(this.window_width, hby2 - w) + " " +
-                    coord(this.window_width - h, hby2) + " " +
-                    coord(this.window_width, hby2 + w))
-                .attr("stroke", "black")
-                .attr("fill", "blue");
-        this.throttle_max = self.window_height - 2 * radius;
-        this.steering_max = self.window_width - 2 * radius;
-        // Initialize constants.
-        this.deg2rad = Math.PI / 180;
-        this.max_thrust = 10.0;
-        this.drag_p = 0.1;
-        this.drag_t = 2.0;
-        this.drag_r = 0.2;
-        this.current_x = 0.0;
-        this.current_y = 0.0;
-        this.leverarm = 1.0;
+    this.draw();
+    // Initialize model constants.
+    this.deg2rad = Math.PI / 180;
+    this.max_thrust = 10.0;
+    this.drag_p = 0.1;
+    this.drag_t = 2.0;
+    this.drag_r = 0.2;
+    this.current_x = 0.0;
+    this.current_y = 0.0;
+    this.leverarm = 1.0;
 }
 
-HouseBoat.prototype.update_state = function() {
+HouseBoat.prototype.update = function(throttle, steering) {
     dt = 0.1;
+    this.throttle = throttle;
+    this.steering = steering;
+    this.phi = 90.0 * steering;
     // Initialize a unit vector aligned with the pontoons.
     var theta = this.theta * this.deg2rad;
     var nx = Math.cos(theta), ny = Math.sin(theta);
@@ -177,7 +102,7 @@ HouseBoat.prototype.update_state = function() {
     this.omega += tnet * dt;
 }
 
-HouseBoat.prototype.draw_boat = function() {
+HouseBoat.prototype.draw = function() {
     this.boat
         .attr("transform",
             "translate(" + coord(this.x,this.y) + ") rotate(" +
@@ -193,43 +118,140 @@ HouseBoat.prototype.draw_boat = function() {
             wake_scale + ")");
 }
 
-HouseBoat.prototype.run = function() {
+function Simulator() {
+}
+
+Simulator.prototype.initialize = function() {
+    this.svg = d3.select("svg");
+    this.window_width = +this.svg.attr("width");
+    this.window_height = +this.svg.attr("height");
+    var wby2 = 0.5 * this.window_width, hby2 = 0.5 * this.window_height;
+    // Set coordinate system with origin at center of the window,
+    // x increasing to the right, and y increasing upwards.
+    this.axes = this.svg.append("g")
+        .attr("transform", "translate(" + coord(wby2, hby2) +
+            ") scale(1, -1)");
+    // Initialize throttle and steering controls.
+    var radius = 16.0;
+    this.throttle_display = this.svg.append("circle")
+        .attr("cx", this.window_width - radius)
+        .attr("cy", hby2)
+        .attr("r", radius)
+        .attr("stroke", "black")
+        .attr("fill-opacity", "0.5")
+        .attr("fill", "green");
+    this.steering_display = this.svg.append("circle")
+        .attr("cx", wby2)
+        .attr("cy", this.window_height - radius)
+        .attr("r", radius)
+        .attr("stroke", "black")
+        .attr("fill-opacity", "0.5")
+        .attr("fill", "green");
+    // Draw center marks for each control.
+    var w = 0.2 * radius, h = 0.6 * radius;
+    this.svg.append("polygon")
+        .attr("points",
+            coord(wby2 - w, this.window_height) + " " +
+            coord(wby2, this.window_height - h) + " " +
+            coord(wby2 + w, this.window_height))
+        .attr("stroke", "black")
+        .attr("fill", "blue");
+    this.svg.append("polygon")
+        .attr("points",
+            coord(this.window_width, hby2 - w) + " " +
+            coord(this.window_width - h, hby2) + " " +
+            coord(this.window_width, hby2 + w))
+        .attr("stroke", "black")
+        .attr("fill", "blue");
+    this.throttle_max = this.window_height - 2 * radius;
+    this.steering_max = this.window_width - 2 * radius;
+
+    // Capture arrow keypress events.
+    this.right = false;
+    this.left = false;
+    this.up = false;
+    this.down = false;
+    var self = this;
+    d3.select("body")
+        .on("keydown", function() {
+            var code = d3.event.keyCode;
+            if(code == 39) {
+                self.right = true;
+            }
+            else if(code == 37) {
+                self.left = true;
+            }
+            else if(code == 38) {
+                self.up = true;
+            }
+            else if(code == 40) {
+                self.down = true;
+            }
+            if(self.right || self.left) {
+                self.steering_display.attr("fill-opacity", "1.0");
+            }
+            if(self.up || self.down) {
+                self.throttle_display.attr("fill-opacity", "1.0");
+            }
+        })
+        .on("keyup", function() {
+            var code = d3.event.keyCode;
+            if(code == 39) {
+                self.right = false;
+            }
+            else if(code == 37) {
+                self.left = false;
+            }
+            else if(code == 38) {
+                self.up = false;
+            }
+            else if(code == 40) {
+                self.down = false;
+            }
+            if(!self.right && !self.left) {
+                self.steering_display.attr("fill-opacity", "0.5");
+            }
+            if(!self.up && !self.down) {
+                self.throttle_display.attr("fill-opacity", "0.5");
+            }
+        });
+
+    this.houseboat = new HouseBoat();
+    this.houseboat.initialize(this.axes);
+}
+
+Simulator.prototype.run = function() {
     var ival = 50; // milliseconds
-    this.trans = d3.transition().duration(ival).ease(d3.easeLinear);
     // Start the interval timer.
     var self = this;
-    //this.interval_id = setInterval(function() {
     d3.interval(function(elapsed) {
+        // Adjust the throttle.
+        var throttle = self.houseboat.throttle;
         var throttle_adjust = +1. * self.up - 1. * self.down;
-        self.throttle += 0.01 * throttle_adjust;
-        if(self.throttle > 1.0) {
-            self.throttle = 1.0;
-        }
-        else if(self.throttle < -1.0) {
-            self.throttle = -1.0;
-        }
+        throttle += 0.01 * throttle_adjust;
+        if(throttle > 1.0) { throttle = 1.0; }
+        else if(throttle < -1.0) { throttle = -1.0; }
+        // Adjust the steering.
+        var steering = self.houseboat.steering;
         var steering_adjust = +1. * self.right - 1. * self.left;
-        self.steering += 0.01 * steering_adjust;
-        if(self.steering > 1.0) {
-            self.steering = 1.0;
-        }
-        else if(self.steering < -1.0) {
-            self.steering = -1.0;
-        }
+        steering += 0.01 * steering_adjust;
+        if(steering > 1.0) { steering = 1.0; }
+        else if(steering < -1.0) { steering = -1.0; }
         self.throttle_display //.transition(self.trans)
-            .attr("cy", 0.5 * (self.window_height - self.throttle_max * self.throttle));
+            .attr("cy",
+            0.5 * (self.window_height - self.throttle_max * throttle));
         self.steering_display //.transition(self.trans)
-            .attr("cx", 0.5 * (self.window_width + self.steering_max * self.steering));
-        self.phi = 90.0 * self.steering;
-        self.update_state();
-        self.draw_boat();
+            .attr("cx",
+            0.5 * (self.window_width + self.steering_max * steering));
+        self.houseboat.update(throttle, steering);
+        self.houseboat.draw();
     }, ival);
 }
 
-var hb = new HouseBoat();
+var sim = new Simulator();
 
 $(function() {
     // DOM is ready.
-    hb.initialize();
-    hb.run();
+    sim.initialize();
+    sim.run();
 });
