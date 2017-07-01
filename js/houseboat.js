@@ -124,7 +124,7 @@ HouseBoat.prototype.update = function(throttle, steering) {
 
 HouseBoat.prototype.update_corners = function() {
     var theta = this.theta * this.deg2rad;
-    var nx = Math.cos(theta), ny = Math.sin(theta);
+    var nx = Math.cos(theta), ny = -Math.sin(theta);
     var L = 0.5 * this.length, W = 0.5 * this.width;
     this.corners[0][0] = this.x - nx * L - ny * W;
     this.corners[0][1] = this.y + ny * L - nx * W;
@@ -290,7 +290,9 @@ Simulator.prototype.run = function() {
             var boundary = self.boundaries[i];
             // Loop over corners of the boat.
             for(var j = 0; j < corners.length; j++) {
-                // ...
+                if(!d3.polygonContains(boundary.vertices, corners[j])) {
+                    self.houseboat.damage[j] += 0.02;
+                }
             }
         }
         self.houseboat.update(throttle, steering);
