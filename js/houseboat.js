@@ -6,16 +6,20 @@ HouseBoat.prototype.initialize = function() {
     this.svg = d3.select("svg");
     this.window_width = +this.svg.attr("width");
     this.window_height = +this.svg.attr("height");
+    // Set coordinate system with origin at center of the window,
+    // x increasing to the right, and y increasing upwards.
+    this.axes = this.svg.append("g")
+        .attr("transform", "translate(512, 320) scale(1, -1)");
     // Initialize boat state.
-    this.x = 0.5 * this.window_width;
-    this.y = 0.5 * this.window_height;
-    this.theta = 0.0;
+    this.x = 0.0; //0.5 * this.window_width;
+    this.y = 0.0; //0.5 * this.window_height;
+    this.theta = 45.0;
     this.phi = 0.0;
     this.vx = 0.0;
     this.vy = 0.0;
     this.omega = 0.0;
     // Create boat's visual representation.
-    this.boat = this.svg.append("g");
+    this.boat = this.axes.append("g");
     this.boat.append("rect")
         .attr("width", "100")
         .attr("height", "60")
@@ -88,11 +92,15 @@ HouseBoat.prototype.initialize = function() {
             .attr("cx", self.window_width - radius)
             .attr("cy", 0.5 * this.window_height - radius)
             .attr("r", radius)
+            .attr("stroke", "black")
+            .attr("fill-opacity", "0.5")
             .attr("fill", "green");
         this.steering_display = this.svg.append("circle")
             .attr("cx", 0.5 * this.window_width - radius)
             .attr("cy", self.window_height - radius)
             .attr("r", radius)
+            .attr("stroke", "black")
+            .attr("fill-opacity", "0.5")
             .attr("fill", "green");
         this.throttle_max = self.window_height - 2 * radius;
         this.steering_max = self.window_width - 2 * radius;
@@ -114,8 +122,9 @@ HouseBoat.prototype.update_state = function() {
     var nx = Math.cos(theta), ny = Math.sin(theta);
     // Split the velocity (vx,vy) into components parallel
     // and perpendicular to the pontoons.
-    var vpx = this.vx * nx + this.vy * ny;
-    var vpy = this.vy * nx - this.vx * ny;
+    var dotprod = this.vx * nx + this.vy * ny;
+    var vpx = dotprod * nx;
+    var vpy = dotprod * ny;
     var vtx = this.vx - vpx;
     var vty = this.vy - vpy;
     // Calculate the combined drag force.
@@ -150,7 +159,7 @@ HouseBoat.prototype.update_state = function() {
 HouseBoat.prototype.draw_boat = function() {
     this.boat
         .attr("transform",
-            "translate(" + this.x + "," + this.y + ") rotate(" + (-this.theta) + ",0,0)");
+            "translate(" + this.x + "," + this.y + ") rotate(" + this.theta + ",0,0)");
     if(Math.abs(this.throttle) < 0.05) {
         wake_scale = 0.05;
     }
@@ -158,7 +167,7 @@ HouseBoat.prototype.draw_boat = function() {
         wake_scale = this.throttle;
     }
     this.wake
-        .attr("transform", "rotate(" + (-this.phi) + ") scale(" +
+        .attr("transform", "rotate(" + this.phi + ") scale(" +
             wake_scale + ")");
 }
 
