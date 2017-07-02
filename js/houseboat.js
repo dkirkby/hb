@@ -82,7 +82,7 @@ HouseBoat.prototype.initialize = function(axes) {
     // Initialize an array of corner locations.
     this.corners = [[0.,0.], [0.,0.], [0.,0.], [0.,0.]];
     this.update_corners();
-    this.boundary = new Boundary(this.corners);
+    this.boundary = new Boundary(false, this.corners);
     // Create boat's visual representation.
     this.boat = axes.append("g");
     this.boat.append("rect")
@@ -364,7 +364,7 @@ Simulator.prototype.run = function() {
                     boundary.vertices, corners[j]);
                 if((inner && !inside) || (!inner && inside)) {
                     // A corner of the boundary is inside the boat.
-                    force = boundary.restoring_force(corners[j]);
+                    var force = boundary.restoring_force(corners[j]);
                     external_force[0] += force[0];
                     external_force[1] += force[1];
                     // Calculate torque about COM.
@@ -380,6 +380,17 @@ Simulator.prototype.run = function() {
                         self.houseboat.damage[j] = 1.0;
                     }
                 }
+            }
+            if(inner) continue;
+            // Loop over vertices of this boundary.
+            for(var k = 0; k < boundary.vertices.length; k++) {
+                var inside = d3.polygonContains(
+                    self.houseboat.corners, boundary.vertices[k]);
+                if(!inside) continue;
+                var force = self.houseboat.boundary.restoring_force(
+                    boundary.vertices[k]);
+                external_force[0] -= force[0];
+                external_force[1] -= force[1];
             }
         }
         self.houseboat.update(
