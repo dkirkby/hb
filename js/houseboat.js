@@ -6,9 +6,11 @@ function Boundary(inner, vertices) {
     this.inner = inner;
     this.vertices = vertices;
     this.spring_constant = 100.0;
+    this.d2max = 25.0 * 25.0;
 }
 
 Boundary.prototype.draw = function(axes, fill) {
+    this.axes = axes;
     var points_str = "";
     for(var i = 0; i < this.vertices.length; i++) {
         points_str += coord(this.vertices[i][0], this.vertices[i][1])
@@ -24,7 +26,9 @@ Boundary.prototype.draw = function(axes, fill) {
 
 Boundary.prototype.restoring_force = function(point) {
     // Find which edge was breached.
-    var x0 = point[0], y0 = point[1], x1, x2, y1, y2, s;
+    var x1, x2, y1, y2, s, dx, dy, d2, cross, scale;
+    var x0 = point[0], y0 = point[1], d2min = Number.MAX_VALUE,
+        fx=0.0, fy=0.0;
     for(var i1 = 0; i1 < this.vertices.length; i1++) {
         i2 = (i1 + 1) % this.vertices.length;
         x1 = this.vertices[i1][0];
@@ -33,21 +37,28 @@ Boundary.prototype.restoring_force = function(point) {
         y2 = this.vertices[i2][1];
         s = ((x0 - x1) * (x2 - x1) + (y0 - y1) * (y2 - y1)) /
             ((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+        // Point of closest approach must lie on (x1,y1) -> (x2,y2).
         if((s < 0) || (s >= 1)) continue;
-        fx = this.spring_constant * ((1 - s) * x1 + s * x2 - x0);
-        fy = this.spring_constant * ((1 - s) * y1 + s * y2 - y0);
-        // Limit the maximum restoring force.
-        var fnorm2 = fx * fx + fy * fy;
-        var fnorm2max = 10000.0;
-        if(fnorm2 > fnorm2max) {
-            var scale = Math.sqrt(fnorm2max / fnorm2);
-            fx *= scale;
-            fy *= scale;
+        // Calculate vector (xp-x0,yp-y0) pointing to the point
+        // of closest approach.
+        dx = (1.0 - s) * x1 + s * x2 - x0;
+        dy = (1.0 - s) * y1 + s * y2 - y0;
+        d2 = dx * dx + dy * dy;
+        // Keep track of the force due to the edge i1->i2 with the
+        // smallest distance of closest approach.
+        if(d2 < d2min) {
+            d2min = d2;
+            fx = this.spring_constant * dx;
+            fy = this.spring_constant * dy;
+            // Limit the maximum restoring force.
+            if(d2 > this.d2max) {
+                var scale = Math.sqrt(this.d2max / d2);
+                fx *= scale;
+                fy *= scale;
+            }
         }
-        return [fx, fy];
     }
-    console.log('No breach found');
-    return [0., 0.];
+    return [fx, fy];
 }
 
 function HouseBoat() { }
@@ -331,7 +342,7 @@ Simulator.prototype.run = function() {
         // Adjust the steering.
         var steering = self.houseboat.steering;
         var steering_adjust = +1. * self.right - 1. * self.left;
-        steering += 0.01 * steering_adjust;
+        steering += 0.005 * steering_adjust;
         if(steering > 1.0) { steering = 1.0; }
         else if(steering < -1.0) { steering = -1.0; }
         self.throttle_display
@@ -346,17 +357,21 @@ Simulator.prototype.run = function() {
             external_force = [self.current_x, self.current_y];
         for(var i = 0; i < self.boundaries.length; i++) {
             var boundary = self.boundaries[i];
-            if(!boundary.inner) continue;
+            var inner = boundary.inner;
             // Loop over corners of the boat.
             for(var j = 0; j < corners.length; j++) {
-                if(!d3.polygonContains(boundary.vertices, corners[j])) {
+                var inside = d3.polygonContains(
+                    boundary.vertices, corners[j]);
+                if((inner && !inside) || (!inner && inside)) {
+                    // A corner of the boundary is inside the boat.
                     force = boundary.restoring_force(corners[j]);
                     external_force[0] += force[0];
                     external_force[1] += force[1];
                     // Calculate torque about COM.
                     var rx = corners[j][0] - self.houseboat.x;
                     var ry = corners[j][1] - self.houseboat.y;
-                    external_torque += 0.01 * (rx * force[1] - ry * force[0]);
+                    external_torque +=
+                        0.01 * (rx * force[1] - ry * force[0]);
                     // Calculate damage in proportion to |force|.
                     damage = 0.0002 * Math.sqrt(
                         force[0] * force[0] + force[1] * force[1]);
