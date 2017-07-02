@@ -2,9 +2,13 @@ coord = function(x, y) {
     return "" + x + "," + y;
 }
 
-function Boundary(axes, fill, spring_constant, vertices) {
+function Boundary(inner, vertices) {
+    this.inner = inner;
     this.vertices = vertices;
-    this.spring_constant = spring_constant;
+    this.spring_constant = 100.0;
+}
+
+Boundary.prototype.draw = function(axes, fill) {
     var points_str = "";
     for(var i = 0; i < this.vertices.length; i++) {
         points_str += coord(this.vertices[i][0], this.vertices[i][1])
@@ -67,6 +71,7 @@ HouseBoat.prototype.initialize = function(axes) {
     // Initialize an array of corner locations.
     this.corners = [[0.,0.], [0.,0.], [0.,0.], [0.,0.]];
     this.update_corners();
+    this.boundary = new Boundary(this.corners);
     // Create boat's visual representation.
     this.boat = axes.append("g");
     this.boat.append("rect")
@@ -96,7 +101,7 @@ HouseBoat.prototype.initialize = function(axes) {
     }
     this.draw();
     // Initialize model constants.
-    this.max_thrust = 10.0;
+    this.max_thrust = 2.0;
     this.drag_p = 0.1;
     this.drag_t = 2.0;
     this.drag_r = 0.2;
@@ -105,7 +110,7 @@ HouseBoat.prototype.initialize = function(axes) {
 
 HouseBoat.prototype.update = function(
     throttle, steering, external_force, external_torque) {
-    dt = 0.1;
+    dt = 0.02;
     this.throttle = throttle;
     this.steering = steering;
     this.phi = 90.0 * steering;
@@ -283,16 +288,37 @@ Simulator.prototype.initialize = function(current_x, current_y) {
             }
         });
 
-    limits = new Boundary(this.axes, "lightblue", 1000.0,
+    // Create a boundary limiting the boat to the visible area.
+    limits = new Boundary(true,
         [[-wby2, -hby2], [-wby2, hby2], [wby2, hby2], [wby2, -hby2]]);
-    this.boundaries = [ limits ];
+    limits.draw(this.axes, "lightblue");
 
     this.houseboat = new HouseBoat();
     this.houseboat.initialize(this.axes);
+
+    // Create a boundary for navigating around.
+    var x1=-350, x2=-150, y1=-150, y2=100;
+    var L=this.houseboat.length, W=this.houseboat.width;
+    dock1 = new Boundary(false,
+        [[x1, y1], [x1,y2-2.5*W], [x1+1.2*L,y2-2.5*W], [x1+1.2*L,y2-W],
+         [x1,y2-W], [x1, y2], [x2, y2], [x2,y1]]);
+    dock1.draw(this.axes, "tan");
+
+    x1 = 100, x2= 350, x3=310, y1=120, y2=160, y3=-150;
+    dock2 = new Boundary(false,
+        [[x1, y1], [x1, y2], [x2, y2], [x2, y3], [x3, y3], [x3, y1]]);
+    dock2.draw(this.axes, "tan");
+
+    x1=50, x2=80, y1=-200, y2=-170;
+    buoy = new Boundary(false,
+        [[x1,y1], [x1,y2], [x2,y2], [x2,y1]]);
+    buoy.draw(this.axes, "white");
+
+    this.boundaries = [ limits, dock1, dock2, buoy ];
 }
 
 Simulator.prototype.run = function() {
-    var ival = 50; // milliseconds
+    var ival = 10; // milliseconds
     // Start the interval timer.
     var self = this;
     d3.interval(function(elapsed) {
@@ -320,6 +346,7 @@ Simulator.prototype.run = function() {
             external_force = [self.current_x, self.current_y];
         for(var i = 0; i < self.boundaries.length; i++) {
             var boundary = self.boundaries[i];
+            if(!boundary.inner) continue;
             // Loop over corners of the boat.
             for(var j = 0; j < corners.length; j++) {
                 if(!d3.polygonContains(boundary.vertices, corners[j])) {
@@ -350,6 +377,6 @@ var sim = new Simulator();
 
 $(function() {
     // Simulator parameters are current (x,y).
-    sim.initialize(0.5, 0.0);
+    sim.initialize(0.0, 0.0);
     sim.run();
 });
