@@ -414,7 +414,7 @@ Simulator.prototype.run = function() {
 
 var sim = new Simulator();
 
-$(function() {
+window.addEventListener('load', function() {
     // Simulator parameters are current (x,y).
     sim.initialize(0.0, 0.0);
     sim.run();
