@@ -1,0 +1,48 @@
+svg {
+    stroke-linecap: round;
+}
+
+.boat {
+    fill: gray;
+    stroke: black;
+    stroke-width: 2;
+}
+
+.wake {
+    stroke: red;
+    stroke-width: 2;
+    fill: none;
+}
+
+.damage {
+    stroke: none;
+    fill: red;
+}
+
+.boundary {
+    stroke: brown;
+    stroke-width: 3;
+}
+
+.dock {
+    fill: tan;
+}
+
+.water {
+    fill: lightblue;
+}
+
+.control {
+    stroke: black;
+    fill-opacity: 0.5;
+    fill: green;
+}
+
+.active {
+    fill-opacity: 1.0;
+}
+
+.marker {
+    stroke: none;
+    fill: black;
+}

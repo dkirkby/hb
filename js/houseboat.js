@@ -13,7 +13,7 @@ function Boundary(inner, vertices) {
     this.d2max = 25.0 * 25.0;
 }
 
-Boundary.prototype.draw = function(axes, fill) {
+Boundary.prototype.draw = function(axes, classname) {
     this.axes = axes;
     var points_str = "";
     for(var i = 0; i < this.vertices.length; i++) {
@@ -23,9 +23,7 @@ Boundary.prototype.draw = function(axes, fill) {
     points_str += coord(this.vertices[0][0], this.vertices[0][1]);
     axes.append("polyline")
         .attr("points", points_str)
-        .attr("stroke", "brown")
-        .attr("stroke-width", "3.0")
-        .attr("fill", fill);
+        .attr("class", "boundary " + classname);
 }
 
 Boundary.prototype.restoring_force = function(point, where) {
@@ -94,23 +92,21 @@ HouseBoat.prototype.initialize = function(axes) {
     this.boat.append("rect")
         .attr("width", "" + this.length)
         .attr("height", "" + this.width)
-        .attr("transform", "translate(-50, -30)")
-        .attr("fill", "gray")
-        .attr("stroke", "black");
+        .attr("transform", "translate(" +
+            coord(-0.5 * this.length, -0.5 * this.width) + ")")
+        .attr("class", "boat");
     var wake_group = this.boat.append("g")
         .attr("transform", "translate(-50, 0)");
     this.wake = wake_group.append("polyline")
         .attr("points", "-50,-15 0,0 -50,15")
         .attr("transform", "rotate(0) scale(-0.5)")
-        .attr("stroke", "red")
-        .attr("fill", "none");
+        .attr("class", "wake");
     this.corner_circles = [];
     var L = 0.5 * this.length, W = 0.5 * this.width;
     var xy = [[-L, -W], [-L, +W], [+L, +W], [+L, -W]];
     for(var i = 0; i < 4; i++) {
         var circle = this.boat.append("circle")
-            .attr("stroke", "none")
-            .attr("fill", "red")
+            .attr("class", "damage")
             .attr("cx", xy[i][0])
             .attr("cy", xy[i][1])
             .attr("r", 8);
@@ -226,16 +222,12 @@ Simulator.prototype.initialize = function(current_x, current_y) {
         .attr("cx", this.window_width - radius)
         .attr("cy", hby2)
         .attr("r", radius)
-        .attr("stroke", "black")
-        .attr("fill-opacity", "0.5")
-        .attr("fill", "green");
+        .attr("class", "control");
     this.steering_display = this.svg.append("circle")
         .attr("cx", wby2)
         .attr("cy", this.window_height - radius)
         .attr("r", radius)
-        .attr("stroke", "black")
-        .attr("fill-opacity", "0.5")
-        .attr("fill", "green");
+        .attr("class", "control");
     // Draw center marks for each control.
     var w = 0.2 * radius, h = 0.6 * radius;
     this.svg.append("polygon")
@@ -243,15 +235,13 @@ Simulator.prototype.initialize = function(current_x, current_y) {
             coord(wby2 - w, this.window_height) + " " +
             coord(wby2, this.window_height - h) + " " +
             coord(wby2 + w, this.window_height))
-        .attr("stroke", "black")
-        .attr("fill", "blue");
+        .attr("class", "marker");
     this.svg.append("polygon")
         .attr("points",
             coord(this.window_width, hby2 - w) + " " +
             coord(this.window_width - h, hby2) + " " +
             coord(this.window_width, hby2 + w))
-        .attr("stroke", "black")
-        .attr("fill", "blue");
+        .attr("class", "marker");
     this.throttle_max = this.window_height - 2 * radius;
     this.steering_max = this.window_width - 2 * radius;
 
@@ -277,10 +267,10 @@ Simulator.prototype.initialize = function(current_x, current_y) {
                 self.down = true;
             }
             if(self.right || self.left) {
-                self.steering_display.attr("fill-opacity", "1.0");
+                self.steering_display.classed("active", true);
             }
             if(self.up || self.down) {
-                self.throttle_display.attr("fill-opacity", "1.0");
+                self.throttle_display.classed("active", true);
             }
         })
         .on("keyup", function() {
@@ -298,17 +288,17 @@ Simulator.prototype.initialize = function(current_x, current_y) {
                 self.down = false;
             }
             if(!self.right && !self.left) {
-                self.steering_display.attr("fill-opacity", "0.5");
+                self.steering_display.classed("active", false);
             }
             if(!self.up && !self.down) {
-                self.throttle_display.attr("fill-opacity", "0.5");
+                self.throttle_display.classed("active", false);
             }
         });
 
     // Create a boundary limiting the boat to the visible area.
     limits = new Boundary(true,
         [[-wby2, -hby2], [-wby2, hby2], [wby2, hby2], [wby2, -hby2]]);
-    limits.draw(this.axes, "lightblue");
+    limits.draw(this.axes, "water");
 
     this.houseboat = new HouseBoat();
     this.houseboat.initialize(this.axes);
@@ -319,17 +309,17 @@ Simulator.prototype.initialize = function(current_x, current_y) {
     dock1 = new Boundary(false,
         [[x1, y1], [x1,y2-2.5*W], [x1+1.2*L,y2-2.5*W], [x1+1.2*L,y2-W],
          [x1,y2-W], [x1, y2], [x2, y2], [x2,y1]]);
-    dock1.draw(this.axes, "tan");
+    dock1.draw(this.axes, "dock");
 
     x1 = 100, x2= 350, x3=310, y1=120, y2=160, y3=-150;
     dock2 = new Boundary(false,
         [[x1, y1], [x1, y2], [x2, y2], [x2, y3], [x3, y3], [x3, y1]]);
-    dock2.draw(this.axes, "tan");
+    dock2.draw(this.axes, "dock");
 
     x1=50, x2=80, y1=-200, y2=-170;
     buoy = new Boundary(false,
         [[x1,y1], [x1,y2], [x2,y2], [x2,y1]]);
-    buoy.draw(this.axes, "white");
+    buoy.draw(this.axes, "dock");
 
     this.boundaries = [ limits, dock1, dock2, buoy ];
 }
