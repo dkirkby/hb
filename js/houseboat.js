@@ -244,7 +244,13 @@ Simulator.prototype.initialize = function(current_x, current_y) {
         .attr("class", "marker");
     this.throttle_max = this.window_height - 2 * radius;
     this.steering_max = this.window_width - 2 * radius;
-
+    // Draw timer in upper left.
+    this.elapsed = 0.0;
+    this.timer_text = this.svg.append("text")
+        .attr("x", "100")
+        .attr("y", "30")
+        .text("0.0")
+        .attr("class", "timer");
     // Capture arrow keypress events.
     this.right = false;
     this.left = false;
@@ -328,7 +334,7 @@ Simulator.prototype.run = function() {
     var ival = 10; // milliseconds
     // Start the interval timer.
     var self = this;
-    d3.interval(function(elapsed) {
+    d3.interval(function() {
         // Adjust the throttle.
         var throttle = self.houseboat.throttle;
         var throttle_adjust = +1. * self.up - 1. * self.down;
@@ -400,6 +406,9 @@ Simulator.prototype.run = function() {
         self.houseboat.update(
             throttle, steering, external_force, external_torque);
         self.houseboat.draw();
+        // Update the timer.
+        self.elapsed += 0.001 * ival;
+        self.timer_text.text(self.elapsed.toFixed(1));
     }, ival);
 }
 

@@ -46,3 +46,12 @@ svg {
     stroke: none;
     fill: black;
 }
+
+.timer {
+    font-family: Verdana;
+    font-weight: bold;
+    fill: white;
+    opacity: 0.5;
+    font-size: 24px;
+    text-anchor: end;
+}
