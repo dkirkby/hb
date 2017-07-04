@@ -219,6 +219,7 @@ Simulator.prototype.initialize = function(current_x, current_y) {
     // Initialize throttle and steering controls.
     var radius = 16.0;
     this.control_radius = radius;
+    // Draw guide lines for each control.
     this.svg.append("line")
         .attr("x1", this.window_width - radius)
         .attr("x2", this.window_width - radius)
@@ -231,6 +232,7 @@ Simulator.prototype.initialize = function(current_x, current_y) {
         .attr("y1", this.window_height - radius)
         .attr("y2", this.window_height - radius)
         .attr("class", "guide");
+    // Draw circles representing the current control setting.
     this.throttle_display = this.svg.append("circle")
         .attr("cx", this.window_width - radius)
         .attr("cy", hby2)
@@ -255,6 +257,20 @@ Simulator.prototype.initialize = function(current_x, current_y) {
             coord(this.window_width - h, hby2) + " " +
             coord(this.window_width, hby2 + w))
         .attr("class", "marker");
+    // Draw invisible regions where control clicks are detected.
+    this.throttle_input = this.svg.append("rect")
+        .attr("x", this.window_width - 2 * radius)
+        .attr("y", 0)
+        .attr("width", 2 * radius)
+        .attr("height", this.window_height)
+        .attr("class", "control-input");
+    this.steering_input = this.svg.append("rect")
+        .attr("x", 0)
+        .attr("y", this.window_height - 2 * radius)
+        .attr("width", this.window_width - 2 * radius)
+        .attr("height", 2 * radius)
+        .attr("class", "control-input");
+    // Scale control range [-1,+1] to display pixels.
     this.throttle_max = this.window_height - 2 * radius;
     this.steering_max = this.window_width - 4 * radius;
     // Draw timer in upper left.
