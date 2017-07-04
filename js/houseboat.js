@@ -332,6 +332,7 @@ Simulator.prototype.initialize = function() {
             d3.event.stopPropagation();
         });
     // Capture mouse clicks in control inputs.
+    var touch_xy;
     this.steering_input
         .on("mousedown touchstart", function() {
             d3.event.preventDefault();
@@ -342,13 +343,8 @@ Simulator.prototype.initialize = function() {
             }
             else {
                 // Use most recent touch in this input.
-                var xy = d3.touches(this);
-                for(var k = xy.length - 1; k >= 0; k--) {
-                    if(xy[k][0] < body_w - radius) {
-                        x = xy[k][0];
-                        break;
-                    }
-                }
+                touch_xy = d3.touches(this);
+                x = touch_xy[k][xy.length - 1];
             }
             var right = (x >= x0);
             self.right = right;
@@ -369,14 +365,9 @@ Simulator.prototype.initialize = function() {
                 y = d3.mouse(this)[1];
             }
             else {
-                // Use most recent touch in this input.
-                var xy = d3.touches(this);
-                for(var k = xy.length - 1; k >= 0; k--) {
-                    if(xy[k][0] > body_w - radius) {
-                        y = xy[k][1];
-                        break;
-                    }
-                }
+                // Use most recent touch.
+                touch_xy = d3.touches(this);
+                y = touch_xy[k][xy.length - 1];
             }
             var up = (y < y0);
             self.up = up;
