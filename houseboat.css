@@ -1,7 +1,3 @@
-svg {
-    stroke-linecap: round;
-}
-
 .boat {
     fill: whitesmoke;
     stroke: silver;
@@ -20,7 +16,9 @@ svg {
 }
 
 .boundary {
-    stroke: none;
+    stroke: saddlebrown;
+    stroke-width: 4;
+    stroke-linecap: round;
 }
 
 .dock {
@@ -55,8 +53,8 @@ svg {
 
 .control-input {
     stroke: none;
-    fill: white;
-    fill-opacity: 0.2;
+    fill: lightblue;
+    fill-opacity: 0.1;
 }
 
 .timer {

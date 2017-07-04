@@ -219,6 +219,11 @@ Simulator.prototype.initialize = function(current_x, current_y) {
     // Initialize throttle and steering controls.
     var radius = 16.0;
     this.control_radius = radius;
+    // Scale control range [-1,+1] to display pixels.
+    this.throttle_zero = hby2;
+    this.throttle_max = -(hby2 - radius);
+    this.steering_zero = wby2 - radius;
+    this.steering_max = wby2 - 2 * radius;
     // Draw guide lines for each control.
     this.svg.append("line")
         .attr("x1", this.window_width - radius)
@@ -235,11 +240,11 @@ Simulator.prototype.initialize = function(current_x, current_y) {
     // Draw circles representing the current control setting.
     this.throttle_display = this.svg.append("circle")
         .attr("cx", this.window_width - radius)
-        .attr("cy", hby2)
+        .attr("cy", this.throttle_zero)
         .attr("r", radius)
         .attr("class", "control");
     this.steering_display = this.svg.append("circle")
-        .attr("cx", wby2 - radius)
+        .attr("cx", this.steering_zero)
         .attr("cy", this.window_height - radius)
         .attr("r", radius)
         .attr("class", "control");
@@ -247,15 +252,15 @@ Simulator.prototype.initialize = function(current_x, current_y) {
     var w = 0.2 * radius, h = 0.6 * radius;
     this.svg.append("polygon")
         .attr("points",
-            coord(wby2 - radius - w, this.window_height) + " " +
-            coord(wby2 - radius, this.window_height - h) + " " +
-            coord(wby2 - radius + w, this.window_height))
+            coord(this.steering_zero - w, this.window_height) + " " +
+            coord(this.steering_zero, this.window_height - h) + " " +
+            coord(this.steering_zero + w, this.window_height))
         .attr("class", "marker");
     this.svg.append("polygon")
         .attr("points",
-            coord(this.window_width, hby2 - w) + " " +
-            coord(this.window_width - h, hby2) + " " +
-            coord(this.window_width, hby2 + w))
+            coord(this.window_width, this.throttle_zero - w) + " " +
+            coord(this.window_width - h, this.throttle_zero) + " " +
+            coord(this.window_width, this.throttle_zero + w))
         .attr("class", "marker");
     // Draw invisible regions where control clicks are detected.
     this.throttle_input = this.svg.append("rect")
@@ -270,9 +275,6 @@ Simulator.prototype.initialize = function(current_x, current_y) {
         .attr("width", this.window_width - 2 * radius)
         .attr("height", 2 * radius)
         .attr("class", "control-input");
-    // Scale control range [-1,+1] to display pixels.
-    this.throttle_max = this.window_height - 2 * radius;
-    this.steering_max = this.window_width - 4 * radius;
     // Draw timer in upper left.
     this.elapsed = 0.0;
     this.timer_text = this.svg.append("text")
@@ -301,12 +303,6 @@ Simulator.prototype.initialize = function(current_x, current_y) {
             else if(code == 40) {
                 self.down = true;
             }
-            if(self.right || self.left) {
-                self.steering_display.classed("active", true);
-            }
-            if(self.up || self.down) {
-                self.throttle_display.classed("active", true);
-            }
         })
         .on("keyup", function() {
             var code = d3.event.keyCode;
@@ -322,13 +318,34 @@ Simulator.prototype.initialize = function(current_x, current_y) {
             else if(code == 40) {
                 self.down = false;
             }
-            if(!self.right && !self.left) {
-                self.steering_display.classed("active", false);
-            }
-            if(!self.up && !self.down) {
-                self.throttle_display.classed("active", false);
-            }
         });
+    // Capture mouse clicks in control inputs.
+    this.steering_input
+        .on("mousedown", function() {
+            d3.event.preventDefault();
+            var xy = d3.mouse(self.steering_input.node());
+            var right = xy[0] >= self.steering_display.attr("cx");
+            self.right = right;
+            self.left = !right;
+        })
+        .on("mouseup", function() {
+            d3.event.preventDefault();
+            self.left = false;
+            self.right = false;
+        });
+        this.throttle_input
+            .on("mousedown", function() {
+                d3.event.preventDefault();
+                var xy = d3.mouse(self.steering_input.node());
+                var up = xy[1] < self.throttle_display.attr("cy");
+                self.up = up;
+                self.down = !up;
+            })
+            .on("mouseup", function() {
+                d3.event.preventDefault();
+                self.up = false;
+                self.down = false;
+            });
 
     // Create a boundary limiting the boat to the visible area.
     limits = new Boundary(true,
@@ -372,13 +389,13 @@ Simulator.prototype.run = function() {
         var steering = self.houseboat.steering;
         var steering_adjust = +1. * self.right - 1. * self.left;
         steering = clip(steering + 0.005 * steering_adjust, -1, +1);
+        // Update controls display.
+        self.throttle_display.classed("active", throttle_adjust != 0);
+        self.steering_display.classed("active", steering_adjust != 0);
         self.throttle_display
-            .attr("cy",
-            0.5 * (self.window_height - self.throttle_max * throttle));
+            .attr("cy", self.throttle_zero + throttle * self.throttle_max);
         self.steering_display
-            .attr("cx",
-            0.5 * (self.window_width - 2 * self.control_radius +
-                self.steering_max * steering));
+            .attr("cx", self.steering_zero + steering * self.steering_max);
         // Test for any boat-boundary collisions.
         var corners = self.houseboat.corners, where = [0,0];
         var external_torque = 0.0,
