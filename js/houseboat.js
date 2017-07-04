@@ -123,7 +123,7 @@ HouseBoat.prototype.initialize = function(axes) {
 
 HouseBoat.prototype.update = function(
     throttle, steering, external_force, external_torque) {
-    dt = 0.02;
+    dt = 0.05;
     this.throttle = throttle;
     this.steering = steering;
     this.phi = 90.0 * steering;
@@ -391,7 +391,7 @@ Simulator.prototype.initialize = function() {
 
 Simulator.prototype.run = function() {
     var start_time = Date.now();
-    var ival = 10; // milliseconds
+    var ival = 25; // milliseconds
     // Start the interval timer.
     var self = this;
     d3.interval(function() {
