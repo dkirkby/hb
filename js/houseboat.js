@@ -63,8 +63,8 @@ Boundary.prototype.impulse = function(point, where, vx, vy) {
             where[0] = i1;
             where[1] = i2;
             // A coefficient of -2 is elastic and -1 is fully inelastic.
-            fx = -1.5 * vc * dx / dmag;
-            fy = -1.5 * vc * dy / dmag;
+            fx = -1.35 * vc * dx / dmag;
+            fy = -1.35 * vc * dy / dmag;
         }
     }
     return [fx, fy];
@@ -333,14 +333,21 @@ Simulator.prototype.initialize = function() {
         .on("mousedown touchstart", function() {
             d3.event.preventDefault();
             d3.event.stopPropagation();
-            var x;
+            var x0=self.steering_display.attr("cx"), x=x0;
             if(d3.event.type == "mousedown") {
                 x = d3.mouse(this)[0];
             }
             else {
-                x = d3.touches(this)[0][0];
+                // Use most recent touch in this input.
+                var xy = d3.touches(this);
+                for(var k = xy.length - 1; k >= 0; k--) {
+                    if(xy[k][0] < body_w - radius) {
+                        x = xy[k][0];
+                        break;
+                    }
+                }
             }
-            var right = (x >= self.steering_display.attr("cx"));
+            var right = (x >= x0);
             self.right = right;
             self.left = !right;
         })
@@ -354,14 +361,21 @@ Simulator.prototype.initialize = function() {
         .on("mousedown touchstart", function() {
             d3.event.preventDefault();
             d3.event.stopPropagation();
-            var y;
+            var y0=self.throttle_display.attr("cy"), y=y0;
             if(d3.event.type == "mousedown") {
                 y = d3.mouse(this)[1];
             }
             else {
-                y = d3.touches(this)[0][1];
+                // Use most recent touch in this input.
+                var xy = d3.touches(this);
+                for(var k = xy.length - 1; k >= 0; k--) {
+                    if(xy[k][0] > body_w - radius) {
+                        y = xy[k][1];
+                        break;
+                    }
+                }
             }
-            var up = (y < self.throttle_display.attr("cy"));
+            var up = (y < y0);
             self.up = up;
             self.down = !up;
         })
