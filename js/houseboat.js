@@ -187,15 +187,9 @@ HouseBoat.prototype.draw = function() {
         .attr("transform",
             "translate(" + coord(this.x,this.y) + ") rotate(" +
             this.theta + ",0,0)");
-    if(Math.abs(this.throttle) < 0.1) {
-        wake_scale = 0.1;
-    }
-    else {
-        wake_scale = this.throttle;
-    }
     this.wake
         .attr("transform", "rotate(" + this.phi + ") scale(" +
-            wake_scale + ")");
+            this.throttle + ")");
     for(var i = 0; i < 4; i++) {
         this.corner_circles[i].attr("fill-opacity", "" + this.damage[i]);
     }
@@ -275,7 +269,6 @@ Simulator.prototype.initialize = function() {
         .attr("height", 2 * radius)
         .attr("class", "control-input");
     // Draw timer in upper left.
-    this.elapsed = 0.0;
     this.timer_text = this.svg.append("text")
         .attr("x", "100")
         .attr("y", "30")
@@ -397,6 +390,7 @@ Simulator.prototype.initialize = function() {
 }
 
 Simulator.prototype.run = function() {
+    var start_time = Date.now();
     var ival = 10; // milliseconds
     // Start the interval timer.
     var self = this;
@@ -474,8 +468,8 @@ Simulator.prototype.run = function() {
             throttle, steering, external_force, external_torque);
         self.houseboat.draw();
         // Update the timer.
-        self.elapsed += 0.001 * ival;
-        self.timer_text.text(self.elapsed.toFixed(1));
+        var elapsed = 0.001 * (Date.now() - start_time);
+        self.timer_text.text(elapsed.toFixed(0));
     }, ival);
 }
 
