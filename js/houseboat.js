@@ -78,8 +78,8 @@ function HouseBoat() { }
 HouseBoat.prototype.initialize = function(axes) {
     // Initialize boat geometry.
     this.deg2rad = Math.PI / 180;
-    this.length = 100;
-    this.width = 60;
+    this.length = 127;
+    this.width = 40;
     // Initialize boat state.
     this.x = 0.0;
     this.y = 0.0;
@@ -104,7 +104,8 @@ HouseBoat.prototype.initialize = function(axes) {
             coord(-0.5 * this.length, -0.5 * this.width) + ")")
         .attr("class", "boat");
     var wake_group = this.boat.append("g")
-        .attr("transform", "translate(-50, 0)");
+        .attr("transform", "translate(" +
+            coord(-0.5 * this.length, 0) + ")");
     this.wake = wake_group.append("polyline")
         .attr("points", "-50,-15 0,0 -50,15")
         .attr("transform", "rotate(0) scale(-0.5)")
