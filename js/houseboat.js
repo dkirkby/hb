@@ -205,12 +205,13 @@ function Simulator() {
 }
 
 Simulator.prototype.initialize = function(current_x, current_y) {
+    var body_w = document.body.clientWidth, body_h = document.body.clientHeight;
+    var wby2 = 0.5 * body_w, hby2 = 0.5 * body_h;
+    this.svg = d3.select("svg")
+        .attr("width", body_w)
+        .attr("height", body_h);
     this.current_x = current_x;
     this.current_y = current_y;
-    this.svg = d3.select("svg");
-    this.window_width = +this.svg.attr("width");
-    this.window_height = +this.svg.attr("height");
-    var wby2 = 0.5 * this.window_width, hby2 = 0.5 * this.window_height;
     // Set coordinate system with origin at center of the window,
     // x increasing to the right, and y increasing upwards.
     this.axes = this.svg.append("g")
@@ -226,53 +227,53 @@ Simulator.prototype.initialize = function(current_x, current_y) {
     this.steering_max = wby2 - 2 * radius;
     // Draw guide lines for each control.
     this.svg.append("line")
-        .attr("x1", this.window_width - radius)
-        .attr("x2", this.window_width - radius)
+        .attr("x1", body_w - radius)
+        .attr("x2", body_w - radius)
         .attr("y1", radius)
-        .attr("y2", this.window_height - radius)
+        .attr("y2", body_h - radius)
         .attr("class", "guide");
     this.svg.append("line")
         .attr("x1", radius)
-        .attr("x2", this.window_width - 3 * radius)
-        .attr("y1", this.window_height - radius)
-        .attr("y2", this.window_height - radius)
+        .attr("x2", body_w - 3 * radius)
+        .attr("y1", body_h - radius)
+        .attr("y2", body_h - radius)
         .attr("class", "guide");
     // Draw circles representing the current control setting.
     this.throttle_display = this.svg.append("circle")
-        .attr("cx", this.window_width - radius)
+        .attr("cx", body_w - radius)
         .attr("cy", this.throttle_zero)
         .attr("r", radius)
         .attr("class", "control");
     this.steering_display = this.svg.append("circle")
         .attr("cx", this.steering_zero)
-        .attr("cy", this.window_height - radius)
+        .attr("cy", body_h - radius)
         .attr("r", radius)
         .attr("class", "control");
     // Draw center marks for each control.
     var w = 0.2 * radius, h = 0.6 * radius;
     this.svg.append("polygon")
         .attr("points",
-            coord(this.steering_zero - w, this.window_height) + " " +
-            coord(this.steering_zero, this.window_height - h) + " " +
-            coord(this.steering_zero + w, this.window_height))
+            coord(this.steering_zero - w, body_h) + " " +
+            coord(this.steering_zero, body_h - h) + " " +
+            coord(this.steering_zero + w, body_h))
         .attr("class", "marker");
     this.svg.append("polygon")
         .attr("points",
-            coord(this.window_width, this.throttle_zero - w) + " " +
-            coord(this.window_width - h, this.throttle_zero) + " " +
-            coord(this.window_width, this.throttle_zero + w))
+            coord(body_w, this.throttle_zero - w) + " " +
+            coord(body_w - h, this.throttle_zero) + " " +
+            coord(body_w, this.throttle_zero + w))
         .attr("class", "marker");
     // Draw invisible regions where control clicks are detected.
     this.throttle_input = this.svg.append("rect")
-        .attr("x", this.window_width - 2 * radius)
+        .attr("x", body_w - 2 * radius)
         .attr("y", 0)
         .attr("width", 2 * radius)
-        .attr("height", this.window_height)
+        .attr("height", body_h)
         .attr("class", "control-input");
     this.steering_input = this.svg.append("rect")
         .attr("x", 0)
-        .attr("y", this.window_height - 2 * radius)
-        .attr("width", this.window_width - 2 * radius)
+        .attr("y", body_h - 2 * radius)
+        .attr("width", body_w - 2 * radius)
         .attr("height", 2 * radius)
         .attr("class", "control-input");
     // Draw timer in upper left.

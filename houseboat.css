@@ -1,5 +1,10 @@
-.svg {
-    pointer-events: none;
+html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
+svg {
 }
 
 .boat {
@@ -47,7 +52,7 @@
 .guide {
     stroke: green;
     stroke-opacity: 0.2;
-    stroke-width: 4px;
+    stroke-width: 4;
 }
 
 .marker {
