@@ -17,8 +17,6 @@ clip = function(x, xlo, xhi) {
 function Boundary(inner, vertices) {
     this.inner = inner;
     this.vertices = vertices;
-    this.spring_constant = 100.0;
-    this.d2max = 25.0 * 25.0;
 }
 
 Boundary.prototype.draw = function(axes, classname) {
@@ -34,9 +32,9 @@ Boundary.prototype.draw = function(axes, classname) {
         .attr("class", "boundary " + classname);
 }
 
-Boundary.prototype.restoring_force = function(point, where) {
+Boundary.prototype.impulse = function(point, where, vx, vy) {
     // Find which edge was breached.
-    var x1, x2, y1, y2, s, dx, dy, d2, cross, scale;
+    var x1, x2, y1, y2, s, dx, dy, d2, dmag, vc;
     var x0 = point[0], y0 = point[1], d2min = Number.MAX_VALUE,
         fx=0.0, fy=0.0;
     for(var i1 = 0; i1 < this.vertices.length; i1++) {
@@ -54,20 +52,19 @@ Boundary.prototype.restoring_force = function(point, where) {
         dx = (1.0 - s) * x1 + s * x2 - x0;
         dy = (1.0 - s) * y1 + s * y2 - y0;
         d2 = dx * dx + dy * dy;
+        // Calculate velocity component towards breached edge.
+        dmag = Math.sqrt(d2);
+        vc = (vx * dx + vy * dy) / dmag;
+        if(vc >= 0) continue;
         // Keep track of the force due to the edge i1->i2 with the
         // smallest distance of closest approach.
         if(d2 < d2min) {
             d2min = d2;
             where[0] = i1;
             where[1] = i2;
-            fx = this.spring_constant * dx;
-            fy = this.spring_constant * dy;
-            // Limit the maximum restoring force.
-            if(d2 > this.d2max) {
-                var scale = Math.sqrt(this.d2max / d2);
-                fx *= scale;
-                fy *= scale;
-            }
+            // A coefficient of -2 is elastic and -1 is fully inelastic.
+            fx = -1.5 * vc * dx / dmag;
+            fy = -1.5 * vc * dy / dmag;
         }
     }
     return [fx, fy];
@@ -131,14 +128,14 @@ HouseBoat.prototype.initialize = function(axes) {
 }
 
 /*******************************************************************
+ dt : simulation time step in arb. units
  throttle : number in the range [-1,+1]
  steering : number in the range [-1,+1]
  external_force : external forces on the COM due to collisions
  external_torque : external torque about the COM due to collisions
  *******************************************************************/
 HouseBoat.prototype.update = function(
-    throttle, steering, external_force, external_torque) {
-    dt = 0.05;
+    dt, throttle, steering, external_force, external_torque) {
     this.throttle = throttle;
     this.steering = steering;
     this.phi = this.max_steering * steering;
@@ -407,6 +404,7 @@ Simulator.prototype.initialize = function() {
 Simulator.prototype.run = function() {
     var start_time = Date.now();
     var ival = 25; // milliseconds
+    var dt = 0.05; // simulation time in arb. units
     var self = this;
     d3.interval(function() {
         // Adjust the throttle.
@@ -428,6 +426,7 @@ Simulator.prototype.run = function() {
         var corners = self.houseboat.corners, where = [0,0];
         var external_torque = 0.0,
             external_force = [0.0, 0.0];
+        var vx = self.houseboat.vx, vy = self.houseboat.vy;
         for(var i = 0; i < self.boundaries.length; i++) {
             var boundary = self.boundaries[i];
             var inner = boundary.inner;
@@ -437,18 +436,17 @@ Simulator.prototype.run = function() {
                     boundary.vertices, corners[j]);
                 if((inner && !inside) || (!inner && inside)) {
                     // A corner of the boundary is inside the boat.
-                    var force = boundary.restoring_force(
-                        corners[j], where);
-                    external_force[0] += force[0];
-                    external_force[1] += force[1];
+                    var impulse = boundary.impulse(corners[j], where, vx, vy);
+                    external_force[0] += impulse[0] / dt;
+                    external_force[1] += impulse[1] / dt;
                     // Calculate torque about COM.
                     var rx = corners[j][0] - self.houseboat.x;
                     var ry = corners[j][1] - self.houseboat.y;
                     external_torque +=
-                        0.01 * (rx * force[1] - ry * force[0]);
+                        0.01 * (rx * impulse[1] - ry * impulse[0]) / dt;
                     // Calculate damage in proportion to |force|.
-                    damage = 0.0002 * Math.sqrt(
-                        force[0] * force[0] + force[1] * force[1]);
+                    damage = 0.0005 * Math.sqrt(
+                        impulse[0] * impulse[0] + impulse[1] * impulse[1]) / dt;
                     self.houseboat.damage[j] =
                         clip(self.houseboat.damage[j] + damage, 0, 1);
                 }
@@ -459,18 +457,18 @@ Simulator.prototype.run = function() {
                 var inside = d3.polygonContains(
                     self.houseboat.corners, boundary.vertices[k]);
                 if(!inside) continue;
-                var force = self.houseboat.boundary.restoring_force(
-                    boundary.vertices[k], where);
-                external_force[0] -= force[0];
-                external_force[1] -= force[1];
+                var impulse = self.houseboat.boundary.impulse(
+                    boundary.vertices[k], where, -vx, -vy);
+                external_force[0] -= impulse[0] / dt;
+                external_force[1] -= impulse[1] / dt;
                 // Calculate damage in proportion to |force|.
-                damage = 0.0002 * Math.sqrt(
-                    force[0] * force[0] + force[1] * force[1]);
+                damage = 0.0004 * Math.sqrt(
+                    impulse[0] * impulse[0] + impulse[1] * impulse[1]) / dt;
                 // Calculate torque about COM.
                 var rx = boundary.vertices[k][0] - self.houseboat.x;
                 var ry = boundary.vertices[k][1] - self.houseboat.y;
                 external_torque -=
-                    0.01 * (rx * force[1] - ry * force[0]);
+                    0.01 * (rx * impulse[1] - ry * impulse[0]) / dt;
                 // Add damage to both endpoints of the hit edge.
                 self.houseboat.damage[where[0]] =
                     clip(self.houseboat.damage[where[0]] + damage, 0, 1);
@@ -479,7 +477,7 @@ Simulator.prototype.run = function() {
             }
         }
         self.houseboat.update(
-            throttle, steering, external_force, external_torque);
+            dt, throttle, steering, external_force, external_torque);
         self.houseboat.draw();
         // Update the timer.
         var elapsed = 0.001 * (Date.now() - start_time);
