@@ -204,14 +204,12 @@ HouseBoat.prototype.draw = function() {
 function Simulator() {
 }
 
-Simulator.prototype.initialize = function(current_x, current_y) {
+Simulator.prototype.initialize = function() {
     var body_w = document.body.clientWidth, body_h = document.body.clientHeight;
     var wby2 = 0.5 * body_w, hby2 = 0.5 * body_h;
     this.svg = d3.select("svg")
         .attr("width", body_w)
         .attr("height", body_h);
-    this.current_x = current_x;
-    this.current_y = current_y;
     // Set coordinate system with origin at center of the window,
     // x increasing to the right, and y increasing upwards.
     this.axes = this.svg.append("g")
@@ -421,7 +419,7 @@ Simulator.prototype.run = function() {
         // Test for any boat-boundary collisions.
         var corners = self.houseboat.corners, where = [0,0];
         var external_torque = 0.0,
-            external_force = [self.current_x, self.current_y];
+            external_force = [0.0, 0.0];
         for(var i = 0; i < self.boundaries.length; i++) {
             var boundary = self.boundaries[i];
             var inner = boundary.inner;
@@ -484,9 +482,6 @@ Simulator.prototype.run = function() {
 var sim = new Simulator();
 
 window.addEventListener('load', function() {
-    // Simulator parameters are (x,y) components of "current", which is
-    // implemented as a constant external force, so does not really model
-    // current (or wind) correctly.
-    sim.initialize(0, 0);
+    sim.initialize();
     sim.run();
 });
