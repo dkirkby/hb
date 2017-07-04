@@ -321,31 +321,47 @@ Simulator.prototype.initialize = function(current_x, current_y) {
         });
     // Capture mouse clicks in control inputs.
     this.steering_input
-        .on("mousedown", function() {
+        .on("mousedown touchstart", function() {
             d3.event.preventDefault();
-            var xy = d3.mouse(self.steering_input.node());
-            var right = xy[0] >= self.steering_display.attr("cx");
+            d3.event.stopPropagation();
+            var x;
+            if(d3.event.type == "mousedown") {
+                x = d3.mouse(this)[0];
+            }
+            else {
+                x = d3.touches(this)[0][0];
+            }
+            var right = (x >= self.steering_display.attr("cx"));
             self.right = right;
             self.left = !right;
         })
-        .on("mouseup", function() {
+        .on("mouseup touchend", function() {
             d3.event.preventDefault();
+            d3.event.stopPropagation();
             self.left = false;
             self.right = false;
         });
-        this.throttle_input
-            .on("mousedown", function() {
-                d3.event.preventDefault();
-                var xy = d3.mouse(self.steering_input.node());
-                var up = xy[1] < self.throttle_display.attr("cy");
-                self.up = up;
-                self.down = !up;
-            })
-            .on("mouseup", function() {
-                d3.event.preventDefault();
-                self.up = false;
-                self.down = false;
-            });
+    this.throttle_input
+        .on("mousedown touchstart", function() {
+            d3.event.preventDefault();
+            d3.event.stopPropagation();
+            var y;
+            if(d3.event.type == "mousedown") {
+                y = d3.mouse(this)[1];
+            }
+            else {
+                y = d3.touches(this)[0][1];
+            }
+            var up = (y < self.throttle_display.attr("cy"));
+            self.up = up;
+            self.down = !up;
+        })
+        .on("mouseup touchend", function() {
+            d3.event.preventDefault();
+            d3.event.stopPropagation();
+            self.up = false;
+            self.down = false;
+        });
 
     // Create a boundary limiting the boat to the visible area.
     limits = new Boundary(true,
