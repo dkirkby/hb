@@ -3,13 +3,13 @@ svg {
 }
 
 .boat {
-    fill: gray;
+    fill: white;
     stroke: black;
     stroke-width: 2;
 }
 
 .wake {
-    stroke: red;
+    stroke: blue;
     stroke-width: 2;
     fill: none;
 }
@@ -20,12 +20,11 @@ svg {
 }
 
 .boundary {
-    stroke: brown;
-    stroke-width: 3;
+    stroke: none;
 }
 
 .dock {
-    fill: tan;
+    fill: saddlebrown;
 }
 
 .water {
