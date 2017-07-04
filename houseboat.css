@@ -42,9 +42,15 @@ svg {
     fill-opacity: 1.0;
 }
 
+.guide {
+    stroke: green;
+    stroke-opacity: 0.2;
+    stroke-width: 4px;
+}
+
 .marker {
     stroke: none;
-    fill: black;
+    fill: green;
 }
 
 .timer {

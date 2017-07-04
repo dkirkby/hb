@@ -218,13 +218,26 @@ Simulator.prototype.initialize = function(current_x, current_y) {
             ") scale(1, -1)");
     // Initialize throttle and steering controls.
     var radius = 16.0;
+    this.control_radius = radius;
+    this.svg.append("line")
+        .attr("x1", this.window_width - radius)
+        .attr("x2", this.window_width - radius)
+        .attr("y1", radius)
+        .attr("y2", this.window_height - radius)
+        .attr("class", "guide");
+    this.svg.append("line")
+        .attr("x1", radius)
+        .attr("x2", this.window_width - 3 * radius)
+        .attr("y1", this.window_height - radius)
+        .attr("y2", this.window_height - radius)
+        .attr("class", "guide");
     this.throttle_display = this.svg.append("circle")
         .attr("cx", this.window_width - radius)
         .attr("cy", hby2)
         .attr("r", radius)
         .attr("class", "control");
     this.steering_display = this.svg.append("circle")
-        .attr("cx", wby2)
+        .attr("cx", wby2 - radius)
         .attr("cy", this.window_height - radius)
         .attr("r", radius)
         .attr("class", "control");
@@ -232,9 +245,9 @@ Simulator.prototype.initialize = function(current_x, current_y) {
     var w = 0.2 * radius, h = 0.6 * radius;
     this.svg.append("polygon")
         .attr("points",
-            coord(wby2 - w, this.window_height) + " " +
-            coord(wby2, this.window_height - h) + " " +
-            coord(wby2 + w, this.window_height))
+            coord(wby2 - radius - w, this.window_height) + " " +
+            coord(wby2 - radius, this.window_height - h) + " " +
+            coord(wby2 - radius + w, this.window_height))
         .attr("class", "marker");
     this.svg.append("polygon")
         .attr("points",
@@ -243,7 +256,7 @@ Simulator.prototype.initialize = function(current_x, current_y) {
             coord(this.window_width, hby2 + w))
         .attr("class", "marker");
     this.throttle_max = this.window_height - 2 * radius;
-    this.steering_max = this.window_width - 2 * radius;
+    this.steering_max = this.window_width - 4 * radius;
     // Draw timer in upper left.
     this.elapsed = 0.0;
     this.timer_text = this.svg.append("text")
@@ -348,7 +361,8 @@ Simulator.prototype.run = function() {
             0.5 * (self.window_height - self.throttle_max * throttle));
         self.steering_display
             .attr("cx",
-            0.5 * (self.window_width + self.steering_max * steering));
+            0.5 * (self.window_width - 2 * self.control_radius +
+                self.steering_max * steering));
         // Test for any boat-boundary collisions.
         var corners = self.houseboat.corners, where = [0,0];
         var external_torque = 0.0,
@@ -415,7 +429,9 @@ Simulator.prototype.run = function() {
 var sim = new Simulator();
 
 window.addEventListener('load', function() {
-    // Simulator parameters are current (x,y).
-    sim.initialize(0.0, 0.0);
+    // Simulator parameters are (x,y) components of "current", which is
+    // implemented as a constant external force, so does not really model
+    // current (or wind) correctly.
+    sim.initialize(0, 0);
     sim.run();
 });
