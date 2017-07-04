@@ -1,3 +1,11 @@
+/*******************************************************************
+ Instructions at https://github.com/dkirkby/hb/README.md
+ Play online at https://dkirkby.github.io/hb
+ Code is open source (MIT license) at https://github.com/dkirkby/hb
+
+ Author: David Kirkby (https://github.com/dkirkby)
+ *******************************************************************/
+
 coord = function(x, y) {
     return "" + x + "," + y;
 }
@@ -75,7 +83,7 @@ HouseBoat.prototype.initialize = function(axes) {
     // Initialize boat state.
     this.x = 0.0;
     this.y = 0.0;
-    this.theta = 45.0;
+    this.theta = 90.0;
     this.vx = 0.0;
     this.vy = 0.0;
     this.omega = 0.0;
@@ -114,6 +122,7 @@ HouseBoat.prototype.initialize = function(axes) {
     }
     this.draw();
     // Initialize model constants.
+    this.max_steering = 75.0; // degrees
     this.max_thrust = 2.0;
     this.drag_p = 0.1;
     this.drag_t = 2.0;
@@ -121,12 +130,18 @@ HouseBoat.prototype.initialize = function(axes) {
     this.leverarm = 1.0;
 }
 
+/*******************************************************************
+ throttle : number in the range [-1,+1]
+ steering : number in the range [-1,+1]
+ external_force : external forces on the COM due to collisions
+ external_torque : external torque about the COM due to collisions
+ *******************************************************************/
 HouseBoat.prototype.update = function(
     throttle, steering, external_force, external_torque) {
     dt = 0.05;
     this.throttle = throttle;
     this.steering = steering;
-    this.phi = 90.0 * steering;
+    this.phi = this.max_steering * steering;
     // Initialize a unit vector aligned with the pontoons.
     var theta = this.theta * this.deg2rad;
     var nx = Math.cos(theta), ny = Math.sin(theta);
@@ -364,35 +379,34 @@ Simulator.prototype.initialize = function() {
     limits = new Boundary(true,
         [[-wby2, -hby2], [-wby2, hby2], [wby2, hby2], [wby2, -hby2]]);
     limits.draw(this.axes, "water");
+    this.boundaries = [ limits ];
 
     this.houseboat = new HouseBoat();
     this.houseboat.initialize(this.axes);
 
-    // Create a boundary for navigating around.
-    var x1=-350, x2=-150, y1=-150, y2=100;
-    var L=this.houseboat.length, W=this.houseboat.width;
-    dock1 = new Boundary(false,
-        [[x1, y1], [x1,y2-2.5*W], [x1+1.2*L,y2-2.5*W], [x1+1.2*L,y2-W],
-         [x1,y2-W], [x1, y2], [x2, y2], [x2,y1]]);
-    dock1.draw(this.axes, "dock");
-
-    x1 = 100, x2= 350, x3=310, y1=120, y2=160, y3=-150;
-    dock2 = new Boundary(false,
-        [[x1, y1], [x1, y2], [x2, y2], [x2, y3], [x3, y3], [x3, y1]]);
-    dock2.draw(this.axes, "dock");
-
-    x1=50, x2=80, y1=-200, y2=-170;
-    buoy = new Boundary(false,
-        [[x1,y1], [x1,y2], [x2,y2], [x2,y1]]);
-    buoy.draw(this.axes, "dock");
-
-    this.boundaries = [ limits, dock1, dock2, buoy ];
+    // Create some docks and obstacles to navigate around, if there is
+    // enough screen real estate.
+    var L=this.houseboat.length, W=this.houseboat.width, T=40;
+    if(wby2 >= 3*W+1.2*L && body_h >= 300) {
+        var x1=-wby2+2*W, x2=-W, y1=-150, y2=y1+250;
+        var dock1 = new Boundary(false,
+            [[x1, y1], [x1,y2-2.5*W], [x1+1.2*L,y2-2.5*W], [x1+1.2*L,y2-W],
+             [x1,y2-W], [x1, y2], [x2, y2], [x2,y1]]);
+        dock1.draw(this.axes, "dock");
+        this.boundaries.push(dock1);
+    }
+    if(wby2 >= 4*W+L+T && hby2 >= 2*W+L+T) {
+        var x1=W, x3=wby2-3*W, x2=x3-T, y1=hby2-2*W, y2=y1-T, y3=-hby2+2*W;
+        var dock2 = new Boundary(false,
+            [[x1,y1], [x3,y1], [x3,y3], [x2,y3], [x2,y2], [x1,y2]]);
+        dock2.draw(this.axes, "dock");
+        this.boundaries.push(dock2);
+    }
 }
 
 Simulator.prototype.run = function() {
     var start_time = Date.now();
     var ival = 25; // milliseconds
-    // Start the interval timer.
     var self = this;
     d3.interval(function() {
         // Adjust the throttle.
