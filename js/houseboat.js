@@ -344,7 +344,7 @@ Simulator.prototype.initialize = function() {
             else {
                 // Use most recent touch in this input.
                 touch_xy = d3.touches(this);
-                x = touch_xy[k][xy.length - 1];
+                x = touch_xy[xy.length - 1][0];
             }
             var right = (x >= x0);
             self.right = right;
@@ -367,7 +367,7 @@ Simulator.prototype.initialize = function() {
             else {
                 // Use most recent touch.
                 touch_xy = d3.touches(this);
-                y = touch_xy[k][xy.length - 1];
+                y = touch_xy[xy.length - 1][1];
             }
             var up = (y < y0);
             self.up = up;
