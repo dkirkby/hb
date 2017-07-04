@@ -318,6 +318,11 @@ Simulator.prototype.initialize = function(current_x, current_y) {
             else if(code == 40) {
                 self.down = false;
             }
+        })
+        // Ignore touch events (pointer events are ignored via CSS).
+        .on("touchstart touchmove touchend", function() {
+            d3.event.preventDefault();
+            d3.event.stopPropagation();
         });
     // Capture mouse clicks in control inputs.
     this.steering_input

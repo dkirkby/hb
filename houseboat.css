@@ -1,3 +1,7 @@
+.svg {
+    pointer-events: none;
+}
+
 .boat {
     fill: whitesmoke;
     stroke: silver;
