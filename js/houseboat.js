@@ -392,18 +392,20 @@ Simulator.prototype.initialize = function() {
     // Create some docks and obstacles to navigate around, if there is
     // enough screen real estate.
     var L=this.houseboat.length, W=this.houseboat.width, T=40;
-    if(wby2 >= 3*W+1.2*L && body_h >= 300) {
-        var x1=-wby2+2*W, x2=-W, y1=-150, y2=y1+250;
+    if(wby2 >= W+3.5*L && hby2 >= L+4*W) {
+        var x1=-wby2+1.5*L, x2=x1+1.2*L, x3=-W, y1=4*W, y2=2*W, y3=0, y4=-3*W;
         var dock1 = new Boundary(false,
-            [[x1, y1], [x1,y2-2.5*W], [x1+1.2*L,y2-2.5*W], [x1+1.2*L,y2-W],
-             [x1,y2-W], [x1, y2], [x2, y2], [x2,y1]]);
+            [[x1,y1], [x3,y1], [x3,y4], [x1,y4],
+             [x1,y3], [x2,y3], [x2,y2], [x1,y2]]);
         dock1.draw(this.axes, "dock");
         this.boundaries.push(dock1);
     }
-    if(wby2 >= 4*W+L+T && hby2 >= 2*W+L+T) {
-        var x1=W, x3=wby2-3*W, x2=x3-T, y1=hby2-2*W, y2=y1-T, y3=-hby2+2*W;
+    if(wby2 >= W+2*L+T && hby2 >= 3*W+L+T) {
+        var x1=W, x3=wby2-L, x2=x3-T, y1=hby2-3*W, y2=y1-T, y3=-hby2+3*W;
+        var x5=x2-2.5*W, x4=x5-T, y4=y2-1.5*L;
         var dock2 = new Boundary(false,
-            [[x1,y1], [x3,y1], [x3,y3], [x2,y3], [x2,y2], [x1,y2]]);
+            [[x1,y1], [x3,y1], [x3,y3], [x2,y3], [x2,y2],
+             [x5,y2], [x5,y4], [x4,y4], [x4,y2], [x1,y2]]);
         dock2.draw(this.axes, "dock");
         this.boundaries.push(dock2);
     }
