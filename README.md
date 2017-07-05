@@ -1,6 +1,8 @@
 # House Boat Simulator
 
-A simple simulation of a 15' x 47' two-level houseboat with a 140 HP motor, similar to [this one](https://lakeshasta.com/houseboats/the-empress/).
+A simple simulation of a 15' x 47' two-level houseboat with a 140 HP motor, similar to this one:
+
+
 
 ## Instructions
 
