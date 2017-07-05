@@ -2,7 +2,7 @@
 
 A simple simulation of a 15' x 47' two-level houseboat with a 140 HP motor, similar to this one:
 
-
+![House Boat Photo](https://raw.githubusercontent.com/dkirkby/hb/master/houseboat.png)
 
 ## Instructions
 
