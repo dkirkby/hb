@@ -6,7 +6,7 @@ A simple simulation of a 15' x 47' two-level houseboat with a 140 HP motor, simi
 
 ## Instructions
 
-Run the simulator in any modern browser by visiting https://dkirkby.github.io/hb
+Run the simulator in any modern browser by visiting https://dkirkby.github.io/hb on a computer or mobile device.
 
 There are two controls, steering (displayed along the bottom edge) and throttle (displayed along the right edge), which can be adjusted several ways:
 
@@ -34,3 +34,7 @@ The boat is modeled as a rigid body subject to the following forces on its cente
  - collisions with the edges and docks.
 
 Each of these forces also generates a corresponding torque on the boat.  Collisions are model using non-linear springs that repel a boat corner penetrating a fixed edge or a fixed corner penetrating a boat edge.
+
+## Implementation Details
+
+Graphics are rendered in SVG using the [D3 library](https://d3js.org).  The simulation area automatically scales to fill your browser window, resizing or eliminating obstacles to fit.  On small screens, there will be no obstacles but you can still navigate the boat, avoiding collisions with the edges. After changing your window size or device orientation, reload the page to fill the new view.
